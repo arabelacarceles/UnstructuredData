@@ -1,0 +1,202 @@
+
+[
+{ "club": "Arsenal FC",
+    "instagram": "https://instagram.com/arsenal",
+    "followers": "30,372,991",
+    "avg_likes": "92,163",
+    "avg_comments": "559",
+    "engagement_rate": "0.30%",
+    "growth_rate": "0.45%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Aston Villa FC",
+    "instagram": "https://instagram.com/avfcofficial",
+    "followers": "4,311,477",
+    "avg_likes": "11,200",
+    "avg_comments": "49",
+    "engagement_rate": "0.26%",
+    "growth_rate": "1.23%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "AFC Bournemouth",
+    "instagram": "https://instagram.com/afcb",
+    "followers": "1,070,193",
+    "avg_likes": "32,100",
+    "avg_comments": "69",
+    "engagement_rate": "3.00%",
+    "growth_rate": "0.72%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Brentford FC",
+    "instagram": "https://instagram.com/brentfordfc",
+    "followers": "780,000",
+    "avg_likes": "3,454",
+    "avg_comments": "30",
+    "engagement_rate": "1.20%",
+    "growth_rate": "1.5%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Brighton & Hove Albion FC",
+    "instagram": "https://instagram.com/officialbhafc",
+    "followers": "2,000,000",
+    "avg_likes": "4,898",
+    "avg_comments": "22",
+    "engagement_rate": "0,2%",
+    "growth_rate": "2,7%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Chelsea FC",
+    "instagram": "https://instagram.com/chelseafc",
+    "followers": "42,571,620",
+    "avg_likes": "55,106",
+    "avg_comments": "288",
+    "engagement_rate": "0.13%",
+    "growth_rate": "1,7%",
+    "growth_trend": "negativa"
+  },
+  {
+    "club": "Crystal Palace FC",
+    "instagram": "https://instagram.com/cpfc",
+    "followers": "2,100,000",
+    "avg_likes": "7,777",
+    "avg_comments": "30",
+    "engagement_rate": "0.36%",
+    "growth_rate": "10,10%",
+    "growth_trend": "estable"
+  },
+  {
+    "club": "Everton FC",
+    "instagram": "https://instagram.com/everton",
+    "followers": "3,100,000",
+    "avg_likes": "6,554",
+    "avg_comments": "72",
+    "engagement_rate": "0.21%",
+    "growth_rate": "1,57%",
+    "growth_trend": "estable"
+  },
+  {
+    "club": "Fulham FC",
+    "instagram": "https://instagram.com/fulhamfc",
+    "followers": "1,200,000",
+    "avg_likes": "6,500",
+    "avg_comments": "45",
+    "engagement_rate": "0.53%",
+    "growth_rate": "8,31%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Liverpool FC",
+    "instagram": "https://instagram.com/liverpoolfc",
+    "followers": "46,626,390",
+    "avg_likes": "66,300",
+    "avg_comments": "205",
+    "engagement_rate": "0.14%",
+    "growth_rate": "2,77%",
+    "growth_trend": "negativa"
+  },
+  {
+    "club": "Manchester City FC",
+    "instagram": "https://instagram.com/mancity",
+    "followers": "56,051,967",
+    "avg_likes": "74,400",
+    "avg_comments": "280",
+    "engagement_rate": "0.13%",
+    "growth_rate": "6,38%",
+    "growth_trend": "estable"
+  },
+  {
+    "club": "Manchester United FC",
+    "instagram": "https://instagram.com/manchesterunited",
+    "followers": "64,294,962",
+    "avg_likes": "93,400",
+    "avg_comments": "273",
+    "engagement_rate": "0.15%",
+    "growth_rate": "0.99%",
+    "growth_trend": "negativa"
+  },
+  {
+    "club": "Newcastle United FC",
+    "instagram": "https://instagram.com/nufc",
+    "followers": "3,000,000",
+    "avg_likes": "19,000",
+    "avg_comments": "55",
+    "engagement_rate": "0,62%",
+    "growth_rate": "10,75%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Nottingham Forest FC",
+    "instagram": "https://instagram.com/officialnffc",
+    "followers": "1,200,000",
+    "avg_likes": "12,700",
+    "avg_comments": "69",
+    "engagement_rate": "1%",
+    "growth_rate": "18,38",
+    "growth_trend": "positiva"
+  },
+    {
+    "club": "Ipswich Town FC",
+    "instagram": "https://www.instagram.com/ipswichtown/",
+    "followers": "615,900",
+    "avg_likes": "3,600",
+    "avg_comments": "22",
+    "engagement_rate": "0,58%",
+    "growth_rate": "89,12%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Tottenham Hotspur FC",
+    "instagram": "https://www.instagram.com/spursofficial/",
+    "followers": "17,100,000",
+    "avg_likes": "18,500",
+    "avg_comments": "137",
+    "engagement_rate": "0.11%",
+    "growth_rate": "0,63%",
+    "growth_trend": "negativa"
+  },
+  {
+    "club": "West Ham United FC",
+    "instagram": "https://www.instagram.com/westham/",
+    "followers": "4,400,000",
+    "avg_likes": "5,700",
+    "avg_comments": "47",
+    "engagement_rate": "0.13%",
+    "growth_rate": "-0,21",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Wolverhampton Wanderers FC",
+    "instagram": "https://www.instagram.com/wolves/",
+    "followers": "2,900,000",
+    "avg_likes": "7,600",
+    "avg_comments": "57",
+    "engagement_rate": "0.26%",
+    "growth_rate": "2,37%",
+    "growth_trend": "positiva"
+  },
+  {
+    "club": "Leicester City FC",
+    "instagram": "https://www.instagram.com/lcfc/",
+    "followers": "7,900,000",
+    "avg_likes": "3,700",
+    "avg_comments": "64",
+    "engagement_rate": "0.05%",
+    "growth_rate": "0,84%",
+    "growth_trend": "positiva"
+  },
+    {
+    "club": "Southampton FC",
+    "instagram": "https://www.instagram.com/lcfc/",
+    "followers": "1,600,000",
+    "avg_likes": "9,464",
+    "avg_comments": "52",
+    "engagement_rate": "0.60%",
+    "growth_rate": "-0,14",
+    "growth_trend": "positiva"
+  }
+  ]
