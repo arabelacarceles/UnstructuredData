@@ -207,6 +207,6 @@ for i, c in enumerate(all_clubs):
     }
 
     insights_col.update_one({"club_name": c["club_name"]}, {"$set": doc}, upsert=True)
-    safe_print(f"✅ Saved final insights for {c['club_name']}")
+    safe_print(f" Saved final insights for {c['club_name']}")
 
-safe_print("\n✅ All club insights updated with Twitter, News, and YouTube data.")
+safe_print("\n All club insights updated with Twitter, News, and YouTube data.")
