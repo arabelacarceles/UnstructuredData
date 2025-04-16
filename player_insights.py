@@ -6,7 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from collections import Counter
 
 # MongoDB setup
-client = MongoClient("mongodb+srv://arabelacarceles:MongoTest123@cluster0.0wssh1x.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient("uri")
 db = client["media_impact_db"]
 players_col = db["players"]
 articles_col = db["news_data"]
@@ -48,24 +48,33 @@ negative_keywords = {
 players = list(players_col.find())
 player_clubs = {p["name"]: p.get("club_name") for p in players}
 player_photos = {p["name"]: p.get("photo_base64") for p in players}
-player_stats = {p["name"]: {"mention_count": 0, "num_videos": 0} for p in players}
+player_stats = {p["name"]: {"mention_count": 0, "num_videos": 0, "videos": []} for p in players}
 
-# Extract YouTube mentions
+
 videos = list(videos_col.find())
 for video in videos:
     mentioned_in_video = set()
     transcript = video.get("transcript_text", "")
+    video_id = video.get("video_id")
+    title = video.get("title", "").lower()
     sentences = nltk.sent_tokenize(transcript)
 
     for sentence in sentences:
         lower_sentence = sentence.lower()
         for name in player_stats:
-            if name.lower() in lower_sentence:
+            name_parts = name.lower().split()
+            if name in lower_sentence:
                 player_stats[name]["mention_count"] += 1
                 mentioned_in_video.add(name)
 
+    for name in player_stats:
+        name_parts = name.lower().split()
+        if any(part in title for part in name_parts) or name.lower() in title:
+            mentioned_in_video.add(name)
+
     for name in mentioned_in_video:
         player_stats[name]["num_videos"] += 1
+        player_stats[name]["videos"].append(str(video_id))
 
 # Analyze articles and combine with YouTube data
 all_players = []
@@ -112,7 +121,8 @@ for name in player_clubs:
         "strong_positive_sentences": pos_sents,
         "strong_negative_sentences": neg_sents,
         "mention_count": player_stats[name]["mention_count"],
-        "num_videos": player_stats[name]["num_videos"]
+        "num_videos": player_stats[name]["num_videos"],
+        "videos": player_stats[name]["videos"]
     })
 
 # Normalize metrics
@@ -157,7 +167,8 @@ for i, player in enumerate(all_players):
         "strong_negative_sentences": player["strong_negative_sentences"],
         "youtube_summary": {
             "mention_count": player["mention_count"],
-            "num_videos": player["num_videos"]
+            "num_videos": player["num_videos"],
+            "video_ids": player["videos"]  # list of video _id strings
         },
         "impact_score": round(normalized_impact_scores[i][0], 2)
     }

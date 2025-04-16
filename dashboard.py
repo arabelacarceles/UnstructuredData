@@ -3,87 +3,321 @@ from pymongo import MongoClient
 import base64
 from PIL import Image
 from io import BytesIO
+import pandas as pd
+import plotly.express as px
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
 # MongoDB Connection
 client = MongoClient(st.secrets["mongo"]["uri"])
 db = client["media_impact_db"]
-clubs_col = db["club_insights"]
+clubs_col = db["clubs"]
+club_insights_col = db["club_insights"]
 players_col = db["player_insights"]
 
+# Page configuration
 st.set_page_config(page_title="Premier League Media Impact", layout="wide")
-st.title("⚽ Premier League Media Impact Dashboard")
 st.markdown("""
-This dashboard analyzes the media impact of Premier League clubs and players based on social media, news articles, and YouTube highlights. Select a club to begin:
-""")
+    <style>
+        .club-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+        .club-logo-emoji {
+            width: 45px;
+            height: 45px;
+            border-radius: 100%;
+            object-fit: cover;
+            box-shadow: 0 0 5px rgba(0,0,0,0.15);
+        }
+        .club-name {
+            font-size: 2.8rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .select-style label {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        h1 {
+            font-family: Arial Black, sans-serif;
+            text-align: center;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# Load clubs
-documents = list(clubs_col.find())
-club_names = sorted([club["club_name"] for club in documents])
-selected_club = st.selectbox("Select a Club", club_names)
-club_doc = next((club for club in documents if club["club_name"] == selected_club), None)
+# Title and introduction
+st.markdown("<h1>Premier League Media Impact Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("This dashboard analyzes the media impact of Premier League clubs and players based on social media, news articles, and YouTube highlights.")
 
-if club_doc:
-    st.subheader(f"{selected_club} Overview")
-    
-    # Display club logo if exists
-    if "logo_base64" in club_doc:
+# Club selection
+st.markdown('<div class="select-style">Select a Club</div>', unsafe_allow_html=True)
+club_docs = list(club_insights_col.find())
+club_names = sorted([club["club_name"] for club in club_docs])
+selected_club = st.selectbox("", [""] + club_names)
+
+if selected_club:
+    club_data = next((c for c in club_docs if c["club_name"] == selected_club), None)
+    logo_data = clubs_col.find_one({"club_name": selected_club})
+
+    st.markdown('<div class="club-header">', unsafe_allow_html=True)
+    if logo_data and "logo_base64" in logo_data:
         try:
-            logo_data = base64.b64decode(club_doc["logo_base64"])
-            image = Image.open(BytesIO(logo_data)).convert("RGB")
-            st.image(image, width=120)
+            logo_bytes = base64.b64decode(logo_data["logo_base64"])
+            logo_img = Image.open(BytesIO(logo_bytes)).convert("RGBA")
+            transparent_background = Image.new("RGBA", logo_img.size, (255, 255, 255, 0))
+            transparent_background.paste(logo_img, mask=logo_img.split()[3])
+            buffered = BytesIO()
+            transparent_background.save(buffered, format="PNG")
+            logo_b64 = base64.b64encode(buffered.getvalue()).decode()
+            st.markdown(f'<div class="club-name">{selected_club} <img class="club-logo-emoji" src="data:image/png;base64,{logo_b64}"/></div>', unsafe_allow_html=True)
         except Exception as e:
             st.warning(f"Could not load logo: {e}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Club insights
-    st.markdown("### Club Insights")
+    st.subheader("📊 Club Insights")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Number of Players", club_doc.get("num_players", "-"))
-    col2.metric("Twitter Score", club_doc.get("normalized_sentiment_twitter", 0), help="Normalized sentiment based on tweets")
-    col3.metric("Overall Impact Score", club_doc.get("impact_score", 0), help="Composite media impact score")
+    col1.metric("Number of Players", club_data.get("num_players", "-"))
+    col2.metric("Twitter Score", club_data.get("normalized_sentiment_twitter", 0), help="Normalized sentiment from tweets")
+    col3.metric("Overall Impact Score", club_data.get("impact_score", 0), help="Composite media impact score")
 
-    # Top keywords
-    st.markdown("### 🔑 Top Mentioned Keywords (News + YouTube)")
+    st.subheader("🔑 Top Mentioned Keywords (News + YouTube)")
+
+    positive_keywords = club_data.get("positive_keyword_counts", {})
+    negative_keywords = club_data.get("negative_keyword_counts", {})
+
+    df_pos = pd.DataFrame(positive_keywords.items(), columns=["Keyword", "Count"]).sort_values("Count", ascending=True)
+    df_neg = pd.DataFrame(negative_keywords.items(), columns=["Keyword", "Count"]).sort_values("Count", ascending=True)
+
     col4, col5 = st.columns(2)
+
     with col4:
-        st.write("**Positive Keywords**")
-        st.json(club_doc.get("positive_keyword_counts", {}))
+        st.markdown("**🟢 Positive Keywords**")
+        if not df_pos.empty:
+            fig_pos = px.bar(df_pos, x="Count", y="Keyword", orientation="h", color_discrete_sequence=["green"])
+            fig_pos.update_layout(xaxis_title="", yaxis_title="", height=300, margin=dict(l=0, r=0, t=30, b=0))
+            st.plotly_chart(fig_pos, use_container_width=True)
+        else:
+            st.write("No positive keywords found.")
+
     with col5:
-        st.write("**Negative Keywords**")
-        st.json(club_doc.get("negative_keyword_counts", {}))
+        st.markdown("**🔴 Negative Keywords**")
+        if not df_neg.empty:
+            fig_neg = px.bar(df_neg, x="Count", y="Keyword", orientation="h", color_discrete_sequence=["red"])
+            fig_neg.update_layout(xaxis_title="", yaxis_title="", height=300, margin=dict(l=0, r=0, t=30, b=0))
+            st.plotly_chart(fig_neg, use_container_width=True)
+        else:
+            st.write("No negative keywords found.")
+    
+    st.subheader("☁️ WordCloud of Keywords")
 
-    # Select a player from this club
+    col_wc1, col_wc2 = st.columns(2)
+
+    with col_wc1:
+        st.markdown("**🟢 Positive Keywords Cloud**")
+        if not df_pos.empty:
+            pos_dict = dict(positive_keywords)
+            wc_pos = WordCloud(width=600, height=300, background_color="white", colormap="Greens").generate_from_frequencies(pos_dict)
+            fig, ax = plt.subplots(figsize=(6, 3))
+            ax.imshow(wc_pos, interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
+        else:
+            st.write("No positive keywords to generate cloud.")
+
+    with col_wc2:
+        st.markdown("**🔴 Negative Keywords Cloud**")
+        if not df_neg.empty:
+            neg_dict = dict(negative_keywords)
+            wc_neg = WordCloud(width=600, height=300, background_color="white", colormap="Reds").generate_from_frequencies(neg_dict)
+            fig, ax = plt.subplots(figsize=(6, 3))
+            ax.imshow(wc_neg, interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
+        else:
+            st.write("No negative keywords to generate cloud.")        
+       
+
+    st.subheader("📊 Comparative Club Scores")
+    all_data = pd.DataFrame(club_docs)
+
+    # Twitter Score Chart
+    twitter_sorted = all_data.sort_values("normalized_sentiment_twitter", ascending=False)
+    twitter_sorted["bar_color"] = twitter_sorted["club_name"].apply(lambda x: "#636EFA" if x == selected_club else "#CCCCCC")
+    club_order = twitter_sorted["club_name"].tolist()
+    fig_sent = px.bar(
+        twitter_sorted,
+        x="club_name", 
+        y="normalized_sentiment_twitter",
+        color="bar_color",
+        color_discrete_map="identity",
+        category_orders={"club_name": club_order})
+    fig_sent.update_layout(
+        title="Twitter Score Comparison", 
+        xaxis_title="", 
+        yaxis_title="Score", 
+        height=350, 
+        showlegend=False)
+    st.plotly_chart(fig_sent, use_container_width=True)
+
+
+    # Overall Impact Chart
+    impact_sorted = all_data.sort_values("impact_score", ascending=False)
+    # Asignamos color al club seleccionado
+    impact_sorted["bar_color"] = impact_sorted["club_name"].apply(
+        lambda x: "#636EFA" if x == selected_club else "#CCCCCC"
+    )
+    # Fijamos el orden del eje x
+    impact_order = impact_sorted["club_name"].tolist()
+    # Gráfico con orden explícito y color personalizado
+    fig_impact = px.bar(
+        impact_sorted,
+        x="club_name", 
+        y="impact_score",
+        color="bar_color",
+        color_discrete_map="identity",
+        category_orders={"club_name": impact_order}
+    )
+
+    fig_impact.update_layout(
+        title="Overall Impact Score Comparison", 
+        xaxis_title="", 
+        yaxis_title="Score", 
+        height=350, 
+        showlegend=False
+    )
+
+    st.plotly_chart(fig_impact, use_container_width=True)
+    
+    
+
     st.markdown("---")
-    st.markdown("### Select a Player")
-    player_docs = list(players_col.find({"club": selected_club}))
-    player_names = sorted([p["name"] for p in player_docs])
-    selected_player = st.selectbox("Select a Player", player_names)
-    player_doc = next((p for p in player_docs if p["name"] == selected_player), None)
+    st.subheader("🎯 Select a Player")
+    players = list(players_col.find({"club": selected_club}))
+    player_names = sorted([p["name"] for p in players])
+    selected_player = st.selectbox("Select a Player", [""] + player_names)
 
-    if player_doc:
+    if selected_player:
+        player = next((p for p in players if p["name"] == selected_player), None)
         st.subheader(f"{selected_player} - Insights")
 
-        # Player image
-        if "photo_base64" in player_doc:
+        if player and "photo_base64" in player:
             try:
-                img_data = base64.b64decode(player_doc["photo_base64"])
-                image = Image.open(BytesIO(img_data)).convert("RGB")
-                st.image(image, width=100)
+                img_data = base64.b64decode(player["photo_base64"])
+                player_img = Image.open(BytesIO(img_data)).convert("RGBA")
+                st.image(player_img, width=120)
             except Exception as e:
                 st.warning(f"Could not load player image: {e}")
 
-        st.metric("News Impact Score", player_doc.get("impact_score", 0))
-        st.metric("Normalized Sentiment (News)", player_doc.get("normalized_sentiment_news", 0))
+        st.metric("Overall Impact Score", player.get("impact_score", 0))
 
-        st.markdown("#### 🔑 Player Keywords")
-        col6, col7 = st.columns(2)
-        with col6:
-            st.write("**Positive Keywords**")
-            st.json(player_doc.get("positive_keyword_counts", {}))
-        with col7:
-            st.write("**Negative Keywords**")
-            st.json(player_doc.get("negative_keyword_counts", {}))
+        st.subheader("📊 Keyword Frequency (Bar Charts)")
+        df_pos_p = pd.DataFrame(player.get("positive_keyword_counts", {}).items(), columns=["Keyword", "Count"]).sort_values("Count", ascending=True)
+        df_neg_p = pd.DataFrame(player.get("negative_keyword_counts", {}).items(), columns=["Keyword", "Count"]).sort_values("Count", ascending=True)
 
-        if "youtube_summary" in player_doc:
-            st.markdown("#### 📺 YouTube Mentions")
-            yt = player_doc["youtube_summary"]
-            st.write(f"Mentioned in **{yt.get('num_videos', 0)}** videos with **{yt.get('mention_count', 0)}** total mentions.")
+        col_bar1, col_bar2 = st.columns(2)
+
+        with col_bar1:
+            st.markdown("**🟢 Positive Keywords**")
+            if not df_pos_p.empty:
+                fig_pos_p = px.bar(df_pos_p, x="Count", y="Keyword", orientation="h", color_discrete_sequence=["green"])
+                fig_pos_p.update_layout(xaxis_title="", yaxis_title="", height=300, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_pos_p, use_container_width=True)
+            else:
+                st.write("No positive keywords found.")
+
+        with col_bar2:
+            st.markdown("**🔴 Negative Keywords**")
+            if not df_neg_p.empty:
+                fig_neg_p = px.bar(df_neg_p, x="Count", y="Keyword", orientation="h", color_discrete_sequence=["red"])
+                fig_neg_p.update_layout(xaxis_title="", yaxis_title="", height=300, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_neg_p, use_container_width=True)
+            else:
+                st.write("No negative keywords found.")
+
+        st.subheader("☁️ WordCloud of Player Keywords")
+        col_wc_p1, col_wc_p2 = st.columns(2)
+
+        with col_wc_p1:
+            st.markdown("**🟢 Positive Keywords Cloud**")
+            if not df_pos_p.empty:
+                wc_pos_p = WordCloud(width=600, height=300, background_color="white", colormap="Greens").generate_from_frequencies(dict(player.get("positive_keyword_counts", {})))
+                fig, ax = plt.subplots(figsize=(6, 3))
+                ax.imshow(wc_pos_p, interpolation="bilinear")
+                ax.axis("off")
+                st.pyplot(fig)
+            else:
+                st.write("No positive keywords to generate cloud.")
+
+        with col_wc_p2:
+            st.markdown("**🔴 Negative Keywords Cloud**")
+            if not df_neg_p.empty:
+                wc_neg_p = WordCloud(width=600, height=300, background_color="white", colormap="Reds").generate_from_frequencies(dict(player.get("negative_keyword_counts", {})))
+                fig, ax = plt.subplots(figsize=(6, 3))
+                ax.imshow(wc_neg_p, interpolation="bilinear")
+                ax.axis("off")
+                st.pyplot(fig)
+            else:
+                st.write("No negative keywords to generate cloud.")
+
+        st.subheader("📈 Impact Score Comparison (Within Club)")
+        df_players = pd.DataFrame(players)
+        df_players = df_players[df_players["impact_score"].notnull()]
+        df_players["bar_color"] = df_players["name"].apply(lambda x: "#636EFA" if x == selected_player else "#CCCCCC")
+        player_order = df_players.sort_values("impact_score", ascending=False)["name"].tolist()
+
+        fig_player_impact = px.bar(
+            df_players.sort_values("impact_score", ascending=False),
+            x="name",
+            y="impact_score",
+            color="bar_color",
+            color_discrete_map="identity",
+            category_orders={"name": player_order}
+        )
+        fig_player_impact.update_layout(
+            title="Player Impact Score Comparison",
+            xaxis_title="",
+            yaxis_title="Impact Score",
+            height=350,
+            showlegend=False
+        )
+        st.plotly_chart(fig_player_impact, use_container_width=True)
+
+
+        if "youtube_summary" in player and "video_ids" in player["youtube_summary"]:
+            video_ids = player["youtube_summary"]["video_ids"]
+            if video_ids:
+                st.markdown("#### 🎥 Player's Highlight Videos")
+
+                videos_html = """
+                <div style="display: flex; overflow-x: auto; gap: 30px; padding-bottom: 15px;">
+                """
+                for video_id in video_ids:
+                    video_doc = db["youtube_data"].find_one({"video_id": video_id})
+                    if video_doc:
+                        title = video_doc.get("title", "Untitled")
+                        thumbnail_b64 = video_doc.get("thumbnail_base64")
+                        video_url = video_doc.get("video_url")
+
+                        if thumbnail_b64 and video_url:
+                            videos_html += f"""
+                            <div style='min-width: 300px; max-width: 300px;'>
+                                <a href='{video_url}' target='_blank' style='text-decoration: none;'>
+                                    <img src='data:image/png;base64,{thumbnail_b64}' style='width: 100%; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);' />
+                                    <div style='font-weight: 600; margin-top: 8px; color: #333;'>{title}</div>
+                                </a>
+                            </div>
+                            """
+
+                videos_html += "</div>"
+
+                from streamlit.components.v1 import html
+                html(videos_html, height=360)
+
+            else:
+                st.info("This player has not been mentioned in any YouTube videos.")

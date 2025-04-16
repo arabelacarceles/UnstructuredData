@@ -7,7 +7,7 @@ import base64
 import time
 
 # MongoDB setup
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient("uri")
 db = client["media_impact_db"]
 clubs_col = db["clubs"]
 

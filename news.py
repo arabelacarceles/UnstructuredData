@@ -7,7 +7,7 @@ import unicodedata
 import random
 
 # MongoDB setup
-mongo = MongoClient("mongodb+srv://arabelacarceles:MongoTest123@cluster0.0wssh1x.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+mongo = MongoClient("uri")
 db = mongo["media_impact_db"]
 social_data_col = db["news_data"]
 players_col = db["clubs"]

@@ -4,11 +4,11 @@ from datetime import datetime
 import time
 
 # Twitter API setup
-BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAMoV0gEAAAAAGOlXuQH0541KOZMO6Do4NGl8Les%3DJdulyKhW5IM0NpIJ74RhKVCDfs4VusnUJN2sr3bLShystwpoen"
+BEARER_TOKEN = ""
 client = tweepy.Client(bearer_token=BEARER_TOKEN)
 
 # MongoDB setup
-mongo = MongoClient("mongodb+srv://arabelacarceles:MongoTest123@cluster0.0wssh1x.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+mongo = MongoClient("uri0")
 db = mongo["media_impact_db"]
 clubs_col = db["clubs"]
 twitter_col = db["twitter_data"]

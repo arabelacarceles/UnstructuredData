@@ -10,7 +10,7 @@ import unicodedata
 nltk.download("punkt")
 
 # MongoDB setup
-client = MongoClient("mongodb+srv://arabelacarceles:MongoTest123@cluster0.0wssh1x.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient("uri")
 db = client["media_impact_db"]
 clubs_col = db["clubs"]
 tweets_col = db["twitter_data"]
