@@ -6,24 +6,25 @@ import time
 import unicodedata
 import random
 
-# MongoDB setup
-mongo = MongoClient("uri")
+# MongoDB connection setup
+mongo = MongoClient("uri")  # Replace with your actual MongoDB URI
 db = mongo["media_impact_db"]
 social_data_col = db["news_data"]
-players_col = db["clubs"]
+players_col = db["clubs"]  # Note: this should contain club info, not players
 
-# GoogleNews config
-googlenews = GoogleNews(lang='en', period='30d')
+# GoogleNews configuration
+googlenews = GoogleNews(lang='en', period='30d')  # Search news from the last 30 days in English
 
-# Función para impresión segura
+# Function to safely print text with Unicode handling
 def safe_print(text):
     try:
         print(text)
     except UnicodeEncodeError:
+        # If characters can't be printed, normalize to ASCII
         text_ascii = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
         print(text_ascii)
 
-# Descargar artículo con headers
+# Download and parse a full article using headers to avoid 403 errors
 def download_article_with_headers(url):
     try:
         headers = {
@@ -45,10 +46,10 @@ def download_article_with_headers(url):
         }
 
     except Exception as e:
-        safe_print(f"Could not download full article: {url}\n{e}")
+        safe_print(f" Could not download full article: {url}\n{e}")
         return None
 
-# Buscar artículos de noticias
+# Search and extract articles related to a specific club/player
 def scrape_news(player_name, required_articles=15):
     googlenews.clear()
     googlenews.search(player_name)
@@ -78,11 +79,12 @@ def scrape_news(player_name, required_articles=15):
                     break
 
         page += 1
-        #time.sleep(random.uniform(3, 6))  # Pausa aleatoria entre páginas
+        # Optional pause between pages to avoid rate limits
+        # time.sleep(random.uniform(3, 6))
 
     return articles
 
-# Guardar en MongoDB
+# Store articles in MongoDB
 def store_news(player_name, articles):
     if not articles:
         safe_print(f"No articles found for {player_name}")
@@ -94,20 +96,21 @@ def store_news(player_name, articles):
         "articles_count": len(articles),
         "articles": articles
     })
-    safe_print(f"Stored {len(articles)} articles for {player_name}")
+    safe_print(f" Stored {len(articles)} articles for {player_name}")
 
-# Ejecutar para todos los jugadores
+# Run for all clubs in the database
 players = list(players_col.find())
 
 for player in players:
     name = player["club_name"]
 
-    # Skip si ya hay artículos guardados
+    # Skip if articles for this club are already in the database
     if social_data_col.count_documents({"club": name, "source": "news"}) > 0:
         safe_print(f"Skipping {name}, articles already exist.")
         continue
 
-    safe_print(f"\nSearching news for: {name}")
+    safe_print(f"\n Searching news for: {name}")
     articles = scrape_news(name, required_articles=15)
     store_news(name, articles)
-    #time.sleep(random.uniform(30, 60))  # Pausa aleatoria entre jugadores
+    # Delay between requests
+    time.sleep(random.uniform(30, 60))

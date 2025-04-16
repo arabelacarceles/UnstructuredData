@@ -6,11 +6,11 @@ from collections import Counter
 from sklearn.preprocessing import MinMaxScaler
 import unicodedata
 
-# Descargar recursos necesarios
+# Download NLTK resources
 nltk.download("punkt")
 
-# MongoDB setup
-client = MongoClient("uri")
+# MongoDB connection
+client = MongoClient("uri")  # Replace with your actual MongoDB URI
 db = client["media_impact_db"]
 clubs_col = db["clubs"]
 tweets_col = db["twitter_data"]
@@ -19,17 +19,19 @@ players_col = db["players"]
 videos_col = db["youtube_data"]
 insights_col = db["club_insights"]
 
+# Safe print to handle Unicode
 def safe_print(text):
     try:
         print(text)
     except UnicodeEncodeError:
         print(unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii"))
 
+# Function to normalize lists into a range (default: 1 to 10)
 def normalize_list(data, feature_range=(1, 10)):
     scaler = MinMaxScaler(feature_range=feature_range)
     return scaler.fit_transform([[x] for x in data])
 
-# Listas de keywords
+# Define keyword dictionaries
 news_positive = {"victory", "win", "wins", "dominated", "undefeated", "clean sheet", "scored",
     "comeback", "tactical", "resilient", "disciplined", "title contenders", "champions",
     "progress", "secured", "in control", "comfortable", "momentum", "improved", "organized",
@@ -50,7 +52,7 @@ yt_negative = {"miss", "missed chance", "penalty miss", "red card", "yellow card
     "controversial", "poor clearance", "bad tackle", "blunder", "slip", "mistake",
     "blocked", "slow reaction", "disallowed goal"}
 
-# Preparar diccionarios
+# Prepare reference mappings
 clubs = list(clubs_col.find())
 club_names = [club["club_name"].lower() for club in clubs]
 club_lookup = {club["club_name"].lower(): club["club_name"] for club in clubs}
@@ -58,34 +60,40 @@ players = list(players_col.find())
 player_to_club = {p["name"].lower(): p["club_name"] for p in players}
 player_names = set(player_to_club.keys())
 
-# YOUTUBE STATS
+# --- YouTube analysis ---
 club_stats_yt = {}
 for video in videos_col.find():
     transcript = video.get("transcript_text", "")
     sentences = sent_tokenize(transcript)
     mentioned_clubs = set()
+
     for sentence in sentences:
         s = sentence.lower()
         polarity = TextBlob(sentence).sentiment.polarity
+
+        # Match club names in transcript
         for club in club_names:
             if club in s:
-                club_stats_yt.setdefault(club, {"mention_count": 0, "num_videos": 0, "sentiment_scores": [], "all_text": []})
+                club_stats_yt.setdefault(club, {...})
                 club_stats_yt[club]["mention_count"] += 1
                 club_stats_yt[club]["sentiment_scores"].append(polarity)
                 club_stats_yt[club]["all_text"].append(s)
                 mentioned_clubs.add(club)
+
+        # Match player names and assign sentiment to their club
         for player in player_names:
             if player in s:
                 club = player_to_club[player].lower()
-                club_stats_yt.setdefault(club, {"mention_count": 0, "num_videos": 0, "sentiment_scores": [], "all_text": []})
+                club_stats_yt.setdefault(club, {...})
                 club_stats_yt[club]["mention_count"] += 1
                 club_stats_yt[club]["sentiment_scores"].append(polarity)
                 club_stats_yt[club]["all_text"].append(s)
                 mentioned_clubs.add(club)
+
     for club in mentioned_clubs:
         club_stats_yt[club]["num_videos"] += 1
 
-# Normalizar sentimientos YT
+# Normalize YouTube sentiment scores
 valid_yt = []
 yt_sentiments = []
 for club, stats in club_stats_yt.items():
@@ -95,7 +103,7 @@ for club, stats in club_stats_yt.items():
 scaler = MinMaxScaler(feature_range=(0, 10))
 yt_norm = scaler.fit_transform([[v] for v in yt_sentiments])
 
-# Crear resumen YouTube
+# Build summary from YouTube
 yt_summary = {}
 for i, club_key in enumerate(valid_yt):
     stats = club_stats_yt[club_key]
@@ -111,13 +119,14 @@ for i, club_key in enumerate(valid_yt):
         "negative_keyword_counts": neg_kw
     }
 
-# FINAL STATS
+# --- Aggregate final stats per club ---
 all_clubs = []
 for club in clubs:
     cname = club["club_name"]
     pnames = [p["name"] for p in players_col.find({"club_name": cname})]
     num_players = len(pnames)
 
+    # Twitter and news
     tw = tweets_col.find_one({"entity": cname, "source": "twitter"})
     nw = news_col.find_one({"club": cname, "source": "news"})
 
@@ -127,11 +136,13 @@ for club in clubs:
     if not articles:
         continue
 
+    # Sentiment
     sent_tw = [TextBlob(t).sentiment.polarity for t in tweets]
     sent_news = [TextBlob(a).sentiment.polarity for a in articles]
     avg_tw = sum(sent_tw) / len(sent_tw) if sent_tw else 0
     avg_news = sum(sent_news) / len(sent_news)
 
+    # Positive/negative sentence extraction
     pos_sents, neg_sents = [], []
     for a in articles:
         for s in sent_tokenize(a):
@@ -139,6 +150,7 @@ for club in clubs:
             if p > 0.6: pos_sents.append(s.strip())
             elif p < -0.6: neg_sents.append(s.strip())
 
+    # Keyword counts
     full = " ".join(articles).lower()
     tokens = word_tokenize(full)
     pos_kw = Counter([w for w in tokens if w in news_positive])
@@ -164,7 +176,7 @@ for club in clubs:
         "youtube_summary": yt_summary.get(cname, {})
     })
 
-# Normalización final
+# Normalize final scores
 S = normalize_list([c["avg_sentiment_news"] for c in all_clubs])
 FP = normalize_list([c["count_positive_sentences"] for c in all_clubs])
 KP = normalize_list([sum(c["positive_keyword_counts"].values()) for c in all_clubs])
@@ -174,7 +186,7 @@ TW = normalize_list([c["avg_sentiment_twitter"] for c in all_clubs], feature_ran
 RAW = [(S[i][0] + FP[i][0] + KP[i][0] - FN[i][0] - KN[i][0]) for i in range(len(all_clubs))]
 IMPACT = normalize_list(RAW, feature_range=(0, 10))
 
-# Save everything
+# Save insights to MongoDB
 for i, c in enumerate(all_clubs):
     doc = {
         "club_name": c["club_name"],
@@ -193,7 +205,8 @@ for i, c in enumerate(all_clubs):
         "youtube_summary": c["youtube_summary"],
         "impact_score": round(IMPACT[i][0], 2)
     }
-    insights_col.update_one({"club_name": c["club_name"]}, {"$set": doc}, upsert=True)
-    safe_print(f" Saved final insights for {c['club_name']}")
 
-safe_print("\n All club insights updated with Twitter, News, and YouTube data.")
+    insights_col.update_one({"club_name": c["club_name"]}, {"$set": doc}, upsert=True)
+    safe_print(f"✅ Saved final insights for {c['club_name']}")
+
+safe_print("\n✅ All club insights updated with Twitter, News, and YouTube data.")
