@@ -6,13 +6,4 @@ wordcloud
 matplotlib
 textblob
 nltk
-collections
-sklearn
-unicodedata
-requests
-bs4
-PIL
-io
-base64
-time
 pandas
