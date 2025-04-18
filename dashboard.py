@@ -153,7 +153,8 @@ if selected_club:
         y="normalized_sentiment_twitter",
         color="bar_color",
         color_discrete_map="identity",
-        title="Twitter Score Comparison"
+        title="Twitter Score Comparison",
+        category_orders={"club_name": twitter_sorted["club_name"].tolist()}
     )
     fig_sent.update_layout(height=350, showlegend=False)
     st.plotly_chart(fig_sent, use_container_width=True)
