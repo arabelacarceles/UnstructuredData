@@ -161,7 +161,7 @@ if selected_club:
     impact_sorted = all_data.sort_values("impact_score", ascending=False)
     impact_sorted["bar_color"] = impact_sorted["club_name"].apply(lambda x: "#636EFA" if x == selected_club else "#CCCCCC")
     fig_impact = px.bar(
-        impact_sorted,
+        impact_sorted.sort_values("impact score",ascending=False),
         x="club_name", 
         y="impact_score",
         color="bar_color",
